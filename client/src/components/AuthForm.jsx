@@ -1,160 +1,298 @@
 // src/components/AuthForm.jsx
 import React, { useState } from "react";
+import { useTheme } from "../context/ThemeContext"; // Import useTheme
 
-// Assuming API_BASE_URL is passed as a prop or defined globally/contextually if preferred
-// For now, I'll pass it as a prop for clarity.
 const AuthForm = ({ onAuthSuccess, API_BASE_URL }) => {
-  const [isRegister, setIsRegister] = useState(false);
+  const { isDarkMode } = useTheme(); // Use theme for conditional styling
+  const [isLogin, setIsLogin] = useState(true);
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [authMessage, setAuthMessage] = useState("");
-  const [authMessageType, setAuthMessageType] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState(""); // 'success' or 'error'
+  const [isLoading, setIsLoading] = useState(false);
+
+  const showMessage = (msg, type) => {
+    setMessage(msg);
+    setMessageType(type);
+    setTimeout(() => {
+      setMessage("");
+      setMessageType("");
+    }, 3000); // Message disappears after 3 seconds
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setAuthMessage(""); // Clear previous messages
-    const url = isRegister
-      ? `${API_BASE_URL}/auth/register`
-      : `${API_BASE_URL}/auth/login`;
-    const body = isRegister
-      ? { username, email, password }
-      : { emailOrUsername: email || username, password };
+    setIsLoading(true);
+    setMessage("");
+    setMessageType("");
+
+    const loginUrl = `${API_BASE_URL}/api/auth/login`; // Corrected: Added /api/
+    const registerUrl = `${API_BASE_URL}/api/auth/register`; // Corrected: Added /api/
+
+    if (!email.trim() || !password.trim()) {
+      showMessage("Email/Username and password are required.", "error");
+      setIsLoading(false);
+      return;
+    }
+
+    if (!isLogin && (!username.trim() || !confirmPassword.trim())) {
+      showMessage("All fields are required for registration.", "error");
+      setIsLoading(false);
+      return;
+    }
+
+    if (!isLogin && password !== confirmPassword) {
+      showMessage("Passwords do not match.", "error");
+      setIsLoading(false);
+      return;
+    }
 
     try {
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(body),
-      });
-      const data = await response.json();
+      let response;
+      let data;
+
+      if (isLogin) {
+        console.log(`AuthForm: Attempting login to: ${loginUrl}`);
+        response = await fetch(loginUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ emailOrUsername: email, password }),
+        });
+      } else {
+        console.log(`AuthForm: Attempting registration to: ${registerUrl}`);
+        response = await fetch(registerUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, email, password }),
+        });
+      }
+
+      data = await response.json();
 
       if (response.ok) {
-        setAuthMessage(
-          isRegister
-            ? "Registration successful! Please log in."
-            : "Login successful!"
+        showMessage(
+          isLogin
+            ? "Login successful!"
+            : "Registration successful! You can now log in.",
+          "success"
         );
-        setAuthMessageType("success");
-        if (!isRegister) {
+        if (isLogin) {
           onAuthSuccess(data.token, data.userId, data.username);
         } else {
-          // After successful registration, switch to login mode automatically
-          setIsRegister(false);
-          setEmail(""); // Clear email and password fields after successful registration
+          // After successful registration, switch to login form
+          setIsLogin(true);
+          setEmail("");
           setPassword("");
           setUsername("");
+          setConfirmPassword("");
         }
       } else {
-        setAuthMessage(data.msg || "Authentication failed.");
-        setAuthMessageType("error");
+        showMessage(
+          data.msg || (isLogin ? "Login failed." : "Registration failed."),
+          "error"
+        );
+        console.error("AuthForm: API Error:", data.msg || response.statusText);
       }
     } catch (error) {
-      console.error("Authentication error:", error);
-      setAuthMessage("Network error. Please try again.");
-      setAuthMessageType("error");
+      console.error("AuthForm: Network error during authentication:", error);
+      showMessage("Network error. Please check server connection.", "error");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors duration-300">
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-lg w-full max-w-sm"
+    <div
+      className={`min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 transition-colors duration-300
+            ${isDarkMode ? "bg-gray-900" : "bg-gray-50"}`}
+    >
+      <div
+        className={`max-w-md w-full p-8 space-y-8 rounded-lg shadow-2xl transform transition-all duration-300
+                ${
+                  isDarkMode
+                    ? "bg-gray-800 text-white border border-blue-700"
+                    : "bg-white text-gray-900 border border-blue-200"
+                }`}
       >
-        <h2 className="text-2xl font-bold mb-6 text-center text-gray-900 dark:text-white">
-          {isRegister ? "Register" : "Login"}
-        </h2>
-        {authMessage && (
-          <div
-            className={`mb-4 p-3 rounded-md text-sm ${
-              authMessageType === "success"
-                ? "bg-green-100 text-green-700 dark:bg-green-700 dark:text-green-100"
-                : "bg-red-100 text-red-700 dark:bg-red-700 dark:text-red-100"
-            }`}
+        <div>
+          <h2
+            className={`mt-6 text-center text-3xl font-extrabold
+                        ${isDarkMode ? "text-white" : "text-gray-900"}`}
           >
-            {authMessage}
+            {isLogin ? "Sign in to your account" : "Register a new account"}
+          </h2>
+        </div>
+
+        {/* Message Display */}
+        {message && (
+          <div
+            className={`p-3 rounded-md text-sm text-center
+                        ${
+                          messageType === "success"
+                            ? "bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100"
+                            : "bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100"
+                        }`}
+          >
+            {message}
           </div>
         )}
-        {isRegister && (
-          <div className="mb-4">
-            <label
-              className="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2"
-              htmlFor="username"
-            >
-              Username
+
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          {!isLogin && (
+            <div>
+              <label htmlFor="username" className="sr-only">
+                Username
+              </label>
+              <input
+                id="username"
+                name="username"
+                type="text"
+                autoComplete="username"
+                required
+                className={`appearance-none rounded-md relative block w-full px-3 py-2 border
+                                    ${
+                                      isDarkMode
+                                        ? "border-gray-600 bg-gray-700 text-white placeholder-gray-400"
+                                        : "border-gray-300 bg-gray-50 text-gray-900 placeholder-gray-500"
+                                    }
+                                    focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm`}
+                placeholder="Username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+              />
+            </div>
+          )}
+          <div>
+            <label htmlFor="email" className="sr-only">
+              Email address or Username
             </label>
             <input
-              className="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 dark:text-gray-200 leading-tight focus:outline-none focus:shadow-outline bg-gray-50 dark:bg-gray-700 dark:border-gray-600"
-              id="username"
-              type="text"
-              placeholder="Username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required={isRegister}
+              id="email"
+              name="email"
+              type="text" // Changed to text to allow username for login
+              autoComplete="email"
+              required
+              className={`appearance-none rounded-md relative block w-full px-3 py-2 border
+                                ${
+                                  isDarkMode
+                                    ? "border-gray-600 bg-gray-700 text-white placeholder-gray-400"
+                                    : "border-gray-300 bg-gray-50 text-gray-900 placeholder-gray-500"
+                                }
+                                focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm`}
+              placeholder={isLogin ? "Email or Username" : "Email address"}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
             />
           </div>
-        )}
-        <div className="mb-4">
-          <label
-            className="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2"
-            htmlFor="email"
-          >
-            Email (or Username for Login)
-          </label>
-          <input
-            className="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 dark:text-gray-200 leading-tight focus:outline-none focus:shadow-outline bg-gray-50 dark:bg-gray-700 dark:border-gray-600"
-            id="email"
-            type="text"
-            placeholder="Email or Username"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </div>
-        <div className="mb-6">
-          <label
-            className="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2"
-            htmlFor="password"
-          >
-            Password
-          </label>
-          <input
-            className="shadow appearance-none border rounded-lg w-full py-2 px-3 text-gray-700 dark:text-gray-200 mb-3 leading-tight focus:outline-none focus:shadow-outline bg-gray-50 dark:bg-gray-700 dark:border-gray-600"
-            id="password"
-            type="password"
-            placeholder="********"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </div>
-        <div className="flex items-center justify-between">
-          <button
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:shadow-outline transition-colors duration-200"
-            type="submit"
-          >
-            {isRegister ? "Register" : "Login"}
-          </button>
+          <div>
+            <label htmlFor="password" className="sr-only">
+              Password
+            </label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              autoComplete={isLogin ? "current-password" : "new-password"}
+              required
+              className={`appearance-none rounded-md relative block w-full px-3 py-2 border
+                                    ${
+                                      isDarkMode
+                                        ? "border-gray-600 bg-gray-700 text-white placeholder-gray-400"
+                                        : "border-gray-300 bg-gray-50 text-gray-900 placeholder-gray-500"
+                                    }
+                                    focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm`}
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </div>
+          {!isLogin && (
+            <div>
+              <label htmlFor="confirm-password" className="sr-only">
+                Confirm Password
+              </label>
+              <input
+                id="confirm-password"
+                name="confirm-password"
+                type="password"
+                autoComplete="new-password"
+                required
+                className={`appearance-none rounded-md relative block w-full px-3 py-2 border
+                                    ${
+                                      isDarkMode
+                                        ? "border-gray-600 bg-gray-700 text-white placeholder-gray-400"
+                                        : "border-gray-300 bg-gray-50 text-gray-900 placeholder-gray-500"
+                                    }
+                                    focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm`}
+                placeholder="Confirm Password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+              />
+            </div>
+          )}
+
+          <div>
+            <button
+              type="submit"
+              className={`group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white
+                                ${
+                                  isLoading
+                                    ? "bg-blue-400"
+                                    : "bg-blue-600 hover:bg-blue-700"
+                                }
+                                focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200`}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <svg
+                  className="animate-spin h-5 w-5 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+              ) : isLogin ? (
+                "Sign In"
+              ) : (
+                "Register"
+              )}
+            </button>
+          </div>
+        </form>
+
+        <div className="text-center">
           <button
             type="button"
-            onClick={() => {
-              setIsRegister((prev) => !prev);
-              setAuthMessage(""); // Clear message on mode switch
-              setUsername("");
-              setEmail("");
-              setPassword("");
-            }}
-            className="inline-block align-baseline font-bold text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-600 transition-colors duration-200"
+            onClick={() => setIsLogin(!isLogin)}
+            className={`font-medium
+                            ${
+                              isDarkMode
+                                ? "text-blue-400 hover:text-blue-300"
+                                : "text-blue-600 hover:text-blue-500"
+                            }
+                            transition-colors duration-200`}
           >
-            {isRegister
-              ? "Already have an account? Login"
-              : "Don't have an account? Register"}
+            {isLogin
+              ? "Don't have an account? Register"
+              : "Already have an account? Sign In"}
           </button>
         </div>
-      </form>
+      </div>
     </div>
   );
 };
