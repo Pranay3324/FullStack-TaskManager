@@ -10,7 +10,7 @@ import ConfirmationModal from "./components/ConfirmationModal";
 import { ThemeProvider, useTheme } from "./context/ThemeContext";
 
 // Base URL for the backend API
-const API_BASE_URL = "http://localhost:5000/api"; // Make sure this matches your backend port
+const API_BASE_URL = "https://fullstack-taskmanager-ux19.onrender.com"; // Make sure this matches your backend port
 
 const App = () => {
   // State for user authentication: token, userId, username
