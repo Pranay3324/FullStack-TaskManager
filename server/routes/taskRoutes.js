@@ -1,7 +1,8 @@
 // backend/routes/taskRoutes.js
 const express = require("express");
 const router = express.Router();
-const auth = require("../middleware/auth"); // Middleware for JWT authentication
+// CORRECTED: Updated path to auth middleware to include the correct filename 'authMiddleware'
+const auth = require("../middleware/authMiddleware"); // Middleware for JWT authentication
 const Task = require("../models/Task"); // Task model
 const fetch = require("node-fetch"); // Make sure node-fetch is installed: npm install node-fetch
 
