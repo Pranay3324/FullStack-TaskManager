@@ -10,10 +10,7 @@ import ConfirmationModal from "./components/ConfirmationModal";
 import { ThemeProvider, useTheme } from "./context/ThemeContext";
 
 // Base URL for the backend API
-// IMPORTANT: This should be the ROOT URL of your deployed Render backend service.
-// DO NOT include '/api' or any route paths here, as they are appended automatically by your fetch calls.
-// Example: If your Render backend URL is 'https://my-backend-service.onrender.com', then set API_BASE_URL to 'https://my-backend-service.onrender.com'.
-const API_BASE_URL = "https://fullstack-taskmanager-ux19.onrender.com"; // <--- This is your backend's root URL
+const API_BASE_URL = 'https://fullstack-taskmanager-ux19.onrender.com'; 
 
 const App = () => {
   // State for user authentication: token, userId, username
@@ -100,8 +97,7 @@ const App = () => {
 
     try {
       console.log("App: Sending fetch tasks request with token.");
-      // CORRECTED: Ensure '/api/tasks' is correctly used
-      const response = await fetch(`${API_BASE_URL}/api/tasks`, {
+      const response = await fetch(`${API_BASE_URL}/tasks`, {
         headers: {
           "x-auth-token": storedToken, // Use the token from localStorage
         },
@@ -199,8 +195,7 @@ const App = () => {
     }
 
     try {
-      // CORRECTED: Ensure '/api/tasks' is correctly used
-      const response = await fetch(`${API_BASE_URL}/api/tasks`, {
+      const response = await fetch(`${API_BASE_URL}/tasks`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -244,8 +239,7 @@ const App = () => {
     }
 
     try {
-      // CORRECTED: Ensure '/api/tasks' is correctly used
-      const response = await fetch(`${API_BASE_URL}/api/tasks/${taskId}`, {
+      const response = await fetch(`${API_BASE_URL}/tasks/${taskId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -298,16 +292,12 @@ const App = () => {
 
     console.log("App: Confirming deletion for task ID:", taskToDelete);
     try {
-      // CORRECTED: Ensure '/api/tasks' is correctly used
-      const response = await fetch(
-        `${API_BASE_URL}/api/tasks/${taskToDelete}`,
-        {
-          method: "DELETE",
-          headers: {
-            "x-auth-token": storedToken, // Use the token from localStorage
-          },
-        }
-      );
+      const response = await fetch(`${API_BASE_URL}/tasks/${taskToDelete}`, {
+        method: "DELETE",
+        headers: {
+          "x-auth-token": storedToken, // Use the token from localStorage
+        },
+      });
       const data = await response.json();
 
       if (response.ok) {
@@ -512,20 +502,16 @@ const App = () => {
                 </p>
               ) : (
                 <div>
-                  {getFilteredAndSortedTasks().map(
-                    (task) =>
-                      // Added a robust check here to ensure task and its _id are valid before rendering
-                      task && task._id ? (
-                        <TaskItem
-                          key={task._id}
-                          task={task}
-                          // onEdit prop removed as editing is now internal to TaskItem
-                          onDelete={handleDeleteClick}
-                          onToggleStatus={updateTask}
-                          onUpdateTaskInPlace={updateTask} // Pass updateTask function to TaskItem
-                        />
-                      ) : null // Render nothing if task or its ID is invalid
-                  )}
+                  {getFilteredAndSortedTasks().map((task) => (
+                    <TaskItem
+                      key={task._id}
+                      task={task}
+                      // onEdit prop removed as editing is now internal to TaskItem
+                      onDelete={handleDeleteClick}
+                      onToggleStatus={updateTask}
+                      onUpdateTaskInPlace={updateTask} // Pass updateTask function to TaskItem
+                    />
+                  ))}
                 </div>
               )}
             </div>
