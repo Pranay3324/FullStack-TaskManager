@@ -2,8 +2,8 @@
 import React, { useState, useEffect } from "react";
 
 // TaskForm is now exclusively for ADDING new tasks
-const TaskForm = ({ onAddTask }) => {
-  // Removed onUpdateTask, editingTask, setEditingTask props
+// Ensure API_BASE_URL is accepted as a prop
+const TaskForm = ({ onAddTask, API_BASE_URL }) => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState("medium");
@@ -12,7 +12,6 @@ const TaskForm = ({ onAddTask }) => {
   const [aiSuggestions, setAiSuggestions] = useState([]);
   const [aiSuggestionMessage, setAiSuggestionMessage] = useState("");
 
-  // Removed useEffect that handled editingTask, as this component no longer edits
   useEffect(() => {
     // Reset form fields when the component mounts or resets naturally (e.g., after add)
     setTitle("");
@@ -26,7 +25,7 @@ const TaskForm = ({ onAddTask }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!title.trim()) {
-      alert("Task title cannot be empty."); // Use custom modal in production
+      alert("Task title cannot be empty."); // Consider using a custom modal here for better UX
       return;
     }
 
@@ -70,8 +69,8 @@ const TaskForm = ({ onAddTask }) => {
         return;
       }
 
-      // Call your backend API for suggestions
-      const response = await fetch("http://localhost:5000/api/tasks/suggest", {
+      // CORRECTED: Use API_BASE_URL prop for the fetch call for AI suggestions
+      const response = await fetch(`${API_BASE_URL}/api/tasks/suggest`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
